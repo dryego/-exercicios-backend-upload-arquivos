@@ -1,4 +1,5 @@
 const knex = require('../conexao');
+const { envioArquivos } = require('../servicos/uplodArquivo');
 
 const listarProdutos = async (req, res) => {
     const { usuario } = req;
@@ -40,7 +41,7 @@ const obterProduto = async (req, res) => {
 }
 
 const cadastrarProduto = async (req, res) => {
-    const { usuario } = req;
+    const { usuario, files } = req;
     const { nome, estoque, preco, categoria, descricao, imagem } = req.body;
 
     if (!nome) {
@@ -58,8 +59,26 @@ const cadastrarProduto = async (req, res) => {
     if (!descricao) {
         return res.status(404).json('O campo descricao é obrigatório');
     }
+    const imagens = [];
+    if (files) {
+        for (const file of files) {
+            const imagem = await envioArquivos(
+                `imagem/${usuario.id}/${file.originalname}`,
+                file.buffer,
+                file.mimetype
+            );
+
+            imagens.push(imagem);
+        }
+    }
+
+    // const urlImagem = imagens.map((imagem) => {
+    //     imagem = imagem.url
+    //     return imagem
+    // });
 
     try {
+
         const produto = await knex('produtos').insert({
             usuario_id: usuario.id,
             nome,
@@ -67,7 +86,7 @@ const cadastrarProduto = async (req, res) => {
             preco,
             categoria,
             descricao,
-            imagem
+            imagem: imagens//urlImagem
         }).returning('*');
 
         if (!produto) {
@@ -76,6 +95,7 @@ const cadastrarProduto = async (req, res) => {
 
         return res.status(200).json(produto);
     } catch (error) {
+        console.log(error);
         return res.status(400).json(error.message);
     }
 }
@@ -85,8 +105,12 @@ const atualizarProduto = async (req, res) => {
     const { id } = req.params;
     const { nome, estoque, preco, categoria, descricao, imagem } = req.body;
 
-    if (!nome && !estoque && !preco && !categoria && !descricao && !imagem) {
+    if (!nome && !estoque && !preco && !categoria && !descricao) {
         return res.status(404).json('Informe ao menos um campo para atualizaçao do produto');
+    }
+
+    if (imagem) {
+        return res.status(404).json('Imagem não pode ser atualizada.');
     }
 
     try {
@@ -106,8 +130,7 @@ const atualizarProduto = async (req, res) => {
                 estoque,
                 preco,
                 categoria,
-                descricao,
-                imagem
+                descricao
             });
 
         if (!produto) {
@@ -118,6 +141,28 @@ const atualizarProduto = async (req, res) => {
     } catch (error) {
         return res.status(400).json(error.message);
     }
+}
+
+const atualizarImagemProduto = async (req, res) => {
+    const { usuario, files } = req;
+    const { id } = req.params;
+
+    const produtoEncontrado = await knex('produtos').where({
+        id,
+        usuario_id: usuario.id
+    }).first();
+
+    if (!produtoEncontrado) {
+        return res.status(404).json('Produto não encontrado');
+    }
+
+    const buscarImagensProduto = produtoEncontrado.imagem
+
+    if (buscarImagensProduto) {
+        return res.status(200).json(pathImagens);
+    }
+
+
 }
 
 const excluirProduto = async (req, res) => {
@@ -154,5 +199,6 @@ module.exports = {
     obterProduto,
     cadastrarProduto,
     atualizarProduto,
+    atualizarImagemProduto,
     excluirProduto
 }
