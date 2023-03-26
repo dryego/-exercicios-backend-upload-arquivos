@@ -26,6 +26,7 @@ rotas.get('/produtos/:id', produtos.obterProduto);
 rotas.post('/produtos', multer.array('imagem'), produtos.cadastrarProduto);
 rotas.put('/produtos/:id', produtos.atualizarProduto);
 rotas.put('/imagem-produto/:id', multer.array('imagem'), produtos.atualizarImagemProduto);
+rotas.delete('/excluir-imagem/:id/:file', produtos.excluirImagemProduto);
 rotas.delete('/produtos/:id', produtos.excluirProduto);
 
 module.exports = rotas;

@@ -1,4 +1,5 @@
 const knex = require('../conexao');
+const { path } = require('../rotas');
 const { envioArquivos } = require('../servicos/uplodArquivo');
 
 const listarProdutos = async (req, res) => {
@@ -165,6 +166,30 @@ const atualizarImagemProduto = async (req, res) => {
 
 }
 
+const excluirImagemProduto = async (req, res) => {
+    const { usuario } = req;
+    const { id, file } = req.params;
+
+    const produtoEncontrado = await knex('produtos').where({
+        id,
+        usuario_id: usuario.id
+    }).first();
+
+    if (!produtoEncontrado) {
+        return res.status(404).json('Produto não encontrado');
+    }
+
+    const buscarImagensProduto = produtoEncontrado.imagem
+
+    if (buscarImagensProduto) {
+        return res.status(200).json(buscarImagensProduto);
+    }
+
+    await excluirImagemProduto(file);
+
+    return res.status(202).json('Inmagem excluida com sucesso.');
+}
+
 const excluirProduto = async (req, res) => {
     const { usuario } = req;
     const { id } = req.params;
@@ -200,5 +225,6 @@ module.exports = {
     cadastrarProduto,
     atualizarProduto,
     atualizarImagemProduto,
+    excluirImagemProduto,
     excluirProduto
 }
